@@ -43,18 +43,25 @@ def normalize str
   str.gsub(/(\r\n|\r|\n|\f)/,"").strip
 end
 
-url_list.each do |site_url|
-  feed_urls = Feedbag.find site_url
-  feed = Feedjira::Feed.fetch_and_parse feed_urls.first
+EM.run do
+  EM::PeriodicTimer.new(60) do
+    # 1ページのみ取得する
+    puts "start routine"
+    url_list.each do |site_url|
+      feed_urls = Feedbag.find site_url
+      feed = Feedjira::Feed.fetch_and_parse feed_urls.first
 
-  feed.entries.each do |entry|
-    matome = Api::Matome.new
-    matome[:feed_title] = feed.title
-    matome[:feed_url] = feed.url
-    matome[:entry_title] = entry.title
-    matome[:entry_url] = entry.url
-    matome[:entry_published] = entry.published
-    matome[:entry_categories] = entry.categories
-    matome.save
+      feed.entries.each do |entry|
+        matome = Api::Matome.new
+        matome[:feed_title] = feed.title
+        matome[:feed_url] = feed.url
+        matome[:entry_title] = entry.title
+        matome[:entry_url] = entry.url
+        matome[:entry_published] = entry.published
+        matome[:entry_categories] = entry.categories
+        matome.save
+      end
+    end
+    puts "finish routine"
   end
 end
