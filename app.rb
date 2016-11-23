@@ -43,6 +43,10 @@ def normalize str
   str.gsub(/(\r\n|\r|\n|\f)/,"").strip
 end
 
+def is_new? entry_url
+  Api::Matome.where('entry_url = ?', entry_url).first == nil
+end
+
 EM.run do
   EM::PeriodicTimer.new(60) do
     # 1ページのみ取得する
@@ -52,14 +56,18 @@ EM.run do
       feed = Feedjira::Feed.fetch_and_parse feed_urls.first
 
       feed.entries.each do |entry|
-        matome = Api::Matome.new
-        matome[:feed_title] = feed.title
-        matome[:feed_url] = feed.url
-        matome[:entry_title] = entry.title
-        matome[:entry_url] = entry.url
-        matome[:entry_published] = entry.published
-        matome[:entry_categories] = entry.categories
-        matome.save
+        if is_new? entry.url then
+          matome = Api::Matome.new
+          matome[:feed_title] = feed.title
+          matome[:feed_url] = feed.url
+          matome[:entry_title] = entry.title
+          matome[:entry_url] = entry.url
+          matome[:entry_published] = entry.published
+          matome[:entry_categories] = entry.categories
+          matome.save
+        else
+          puts "already saved url -> #{entry.url}"
+        end
       end
     end
     puts "finish routine"
